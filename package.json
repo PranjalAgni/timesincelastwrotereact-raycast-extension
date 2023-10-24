@@ -1,7 +1,7 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "reactivity",
-  "title": "Reactivity",
+  "name": "reacttimed",
+  "title": "reacttimed",
   "description": "Time spent since you wrote React",
   "icon": "command-icon.png",
   "author": "pranjalagni",
@@ -18,7 +18,8 @@
     }
   ],
   "dependencies": {
-    "@raycast/api": "^1.59.0"
+    "@raycast/api": "^1.59.0",
+    "timeago.js": "^4.0.2"
   },
   "devDependencies": {
     "@raycast/eslint-config": "1.0.5",

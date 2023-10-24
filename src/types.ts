@@ -1,4 +1,5 @@
 export interface IReactProjectMTime {
   name: string;
-  mtime: number;
+  mtime: Date;
+  mtimems: number;
 }
