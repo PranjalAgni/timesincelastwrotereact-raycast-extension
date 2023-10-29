@@ -52,11 +52,6 @@ const listReactProjectWithMtime = (basePath: string): Array<IReactProjectMTime> 
     .filter((dir) => dir.isDirectory())
     .map((dir) => {
       const dirTimeStats = getRecentUpdatedTime(path.join(basePath, dir.name));
-      console.log("Details: ", {
-        name: dir.name,
-        mtimems: dirTimeStats.mtimems,
-        mtime: dirTimeStats.mtime,
-      });
       return {
         name: dir.name,
         mtimems: dirTimeStats.mtimems,
