@@ -15,16 +15,16 @@ import { IReactProjectMTime } from "./types";
 const REACT_BASE_DIR = "/Users/pranjal.dev/coding/React/";
 
 const isValidDir = (dir: fs.Dirent) => {
-  const blackListedDir = [".git", ".github", ".vscode", "node_modules", "public"];
+  const blackListedDir = [".git", ".github", ".vscode", ".next", "node_modules", "public", "build", "dist", "coverage"];
   return !blackListedDir.includes(dir.name);
 };
 
 const getRecentUpdatedTime = (projectPath: string) => {
-  console.log("project path = ", projectPath);
   const projectDirectoriesQueue = [projectPath];
   const mostRecentUpdate = {
-    mtimems: 0,
+    mtimems: Number.MAX_SAFE_INTEGER,
     mtime: new Date(),
+    dirname: "",
   };
   while (projectDirectoriesQueue.length > 0) {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -35,9 +35,10 @@ const getRecentUpdatedTime = (projectPath: string) => {
       .map((dir) => path.join(dirname, dir.name))
       .forEach((dir) => {
         const dirStats = fs.statSync(dir);
-        if (dirStats.mtimeMs > mostRecentUpdate.mtimems) {
+        if (Math.round(dirStats.mtimeMs) < Math.round(mostRecentUpdate.mtimems)) {
           mostRecentUpdate.mtimems = dirStats.mtimeMs;
           mostRecentUpdate.mtime = dirStats.mtime;
+          mostRecentUpdate.dirname = path.basename(dir);
         }
         projectDirectoriesQueue.push(dir);
       });
@@ -56,6 +57,7 @@ const listReactProjectWithMtime = (basePath: string): Array<IReactProjectMTime> 
         name: dir.name,
         mtimems: dirTimeStats.mtimems,
         mtime: dirTimeStats.mtime,
+        dirname: dirTimeStats.dirname,
       };
     });
 
@@ -67,15 +69,16 @@ const sortProjectsByLastModifiedTime = (projectA: IReactProjectMTime, projectB: 
 };
 
 const computeTimeSpentSinceWrittenReact = (project: IReactProjectMTime) => {
+  return format(project.mtime);
   const currentDate = new Date().getTime();
   const projectDate = new Date(project.mtime).getTime();
   return Math.round(Math.abs(currentDate - projectDate) / (1000 * 60 * 60 * 24)) + " days";
 };
 
 export default function Command() {
-  console.log("Basename for dir: ", path.basename(__dirname));
   const projectsWithMetadata = listReactProjectWithMtime(REACT_BASE_DIR);
   projectsWithMetadata.sort(sortProjectsByLastModifiedTime);
+  console.log("All the projects: ", JSON.stringify(projectsWithMetadata, null, 2));
   return (
     <List
       isShowingDetail
