@@ -4,7 +4,7 @@ import fs from "fs";
 import { format } from "timeago.js";
 import { IReactProjectMTime } from "./types";
 
-// Things I need to do:
+// nice Things I need to do:
 
 // [x] 1. List the content of the directory `React`
 // [x] 2. Sort the content based on the last updated time
