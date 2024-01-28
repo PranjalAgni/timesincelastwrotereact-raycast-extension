@@ -1,8 +1,8 @@
-import { Detail, List } from "@raycast/api";
-import path, { dirname } from "path";
+import { List } from "@raycast/api";
+import path from "path";
 import fs from "fs";
 import { format } from "timeago.js";
-import { IReactProjectMTime } from "./types";
+import { IReactProjectStats } from "./types";
 
 // nice Things I need to do:
 
@@ -19,18 +19,13 @@ const isValidDir = (dir: fs.Dirent) => {
   return !(dir.name.length === 0 || dir.name.startsWith(".") || blackListedDir.includes(dir.name));
 };
 
-const getRecentUpdatedTime = (
-  projectPath: string
-): {
-  mtimems: number;
-  mtime: Date;
-  dirname: string;
-} | null => {
+const getRecentUpdatedTime = (projectPath: string): IReactProjectStats | null => {
   const projectDirectoriesQueue = [projectPath];
   const mostRecentUpdate = {
     mtimems: 0,
     mtime: new Date(),
     dirname: "",
+    name: "",
   };
   let isFirstRun = true;
   while (projectDirectoriesQueue.length > 0) {
@@ -38,29 +33,32 @@ const getRecentUpdatedTime = (
     const dirname = projectDirectoriesQueue.shift()!;
     const dirent = fs.readdirSync(dirname, { withFileTypes: true });
 
-    const validDirent = dirent.filter((dir) => dir.isDirectory() && isValidDir(dir));
+    const validDirent = dirent.filter((dir) => isValidDir(dir));
     if (validDirent.length === 0 && isFirstRun) {
       return null;
     }
 
     isFirstRun = false;
-    validDirent
-      .map((dir) => path.join(dirname, dir.name))
-      .forEach((dir) => {
-        const dirStats = fs.statSync(dir);
-        if (Math.round(dirStats.mtimeMs) > Math.round(mostRecentUpdate.mtimems)) {
-          mostRecentUpdate.mtimems = dirStats.mtimeMs;
-          mostRecentUpdate.mtime = dirStats.mtime;
-          mostRecentUpdate.dirname = path.basename(dir);
-        }
-        projectDirectoriesQueue.push(dir);
-      });
+    validDirent.forEach((dir) => {
+      const fullDirPath = path.join(dirname, dir.name);
+      const dirStats = fs.statSync(fullDirPath);
+      if (Math.round(dirStats.mtimeMs) > Math.round(mostRecentUpdate.mtimems)) {
+        mostRecentUpdate.mtimems = dirStats.mtimeMs;
+        mostRecentUpdate.mtime = dirStats.mtime;
+        mostRecentUpdate.dirname = path.basename(fullDirPath);
+        mostRecentUpdate.name = dir.name;
+      }
+
+      if (dir.isDirectory()) {
+        projectDirectoriesQueue.push(fullDirPath);
+      }
+    });
   }
 
   return mostRecentUpdate;
 };
 
-const listReactProjectWithMtime = (basePath: string): Array<IReactProjectMTime> => {
+const listReactProjectWithMtime = (basePath: string): Array<IReactProjectStats> => {
   const dirent = fs.readdirSync(basePath, { withFileTypes: true });
   const reactProjects = dirent
     .filter((dir) => dir.isDirectory() && isValidDir(dir))
@@ -75,28 +73,31 @@ const listReactProjectWithMtime = (basePath: string): Array<IReactProjectMTime> 
       };
     });
 
-  const filteredProjects = reactProjects.filter((project) => project !== null) as IReactProjectMTime[];
+  const filteredProjects = reactProjects.filter((project) => project !== null) as IReactProjectStats[];
   return filteredProjects;
 };
 
-const sortProjectsByLastModifiedTime = (projectA: IReactProjectMTime, projectB: IReactProjectMTime) => {
+const sortProjectsByLastModifiedTime = (projectA: IReactProjectStats, projectB: IReactProjectStats) => {
   return projectB.mtimems - projectA.mtimems;
 };
 
-const daysSinceWrittenReact = (project: IReactProjectMTime) => {
+const daysSinceWrittenReact = (project: IReactProjectStats) => {
   const currentDate = new Date().getTime();
   const projectDate = new Date(project.mtime).getTime();
-  return Math.round(Math.abs(currentDate - projectDate) / (1000 * 60 * 60 * 24)) + " days";
+  const numberOfDays = Math.round(Math.abs(currentDate - projectDate) / (1000 * 60 * 60 * 24));
+  if (numberOfDays === 0) {
+    return format(project.mtime);
+  }
+  return numberOfDays + " days";
 };
 
-const localDateAndTimeOfProject = (project: IReactProjectMTime) => {
+const localDateAndTimeOfProject = (project: IReactProjectStats) => {
   return new Date(project.mtime).toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
 };
 
 export default function Command() {
   const projectsWithMetadata = listReactProjectWithMtime(REACT_BASE_DIR);
   projectsWithMetadata.sort(sortProjectsByLastModifiedTime);
-  // console.log("All the projects: ", JSON.stringify(projectsWithMetadata, null, 2));
   return (
     <List
       isShowingDetail
@@ -112,7 +113,8 @@ export default function Command() {
               markdown={`**Last modified: ${daysSinceWrittenReact(project)}**`}
               metadata={
                 <List.Item.Detail.Metadata>
-                  <List.Item.Detail.Metadata.Label title="Date and Time" text={localDateAndTimeOfProject(project)} />
+                  <List.Item.Detail.Metadata.Label title="Date and Time 🦀" text={localDateAndTimeOfProject(project)} />
+                  <List.Item.Detail.Metadata.Label title="File changed 🪄" text={project.dirname} />
                 </List.Item.Detail.Metadata>
               }
             />
